@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
-	"github.com/goanywhere/fs"
 )
 
 const tag string = "env"
@@ -38,19 +37,20 @@ func findKeyValue(line string) (key, value string) {
 
 // Load parses & set the values in the given files into os environment.
 func Load(dotenv string) {
-	if fs.Exists(dotenv) {
-		dotenv, _ = filepath.Abs(dotenv)
+	if _, err := os.Stat(dotenv); os.IsNotExist(err) {
+		return
+	}
+	dotenv, _ = filepath.Abs(dotenv)
 
-		if file, err := os.Open(dotenv); err == nil {
-			defer file.Close()
-			scanner := bufio.NewScanner(file)
-			for scanner.Scan() {
-				k, v := findKeyValue(scanner.Text())
-				if k != "" && v != "" {
-					Set(k, v)
-				} else {
-					continue
-				}
+	if file, err := os.Open(dotenv); err == nil {
+		defer file.Close()
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			k, v := findKeyValue(scanner.Text())
+			if k != "" && v != "" {
+				Set(k, v)
+			} else {
+				continue
 			}
 		}
 	}
@@ -128,7 +128,7 @@ func Int(key string, fallback ...int) (value int) {
 	return
 }
 
-// Int retrieves the 64-bit integer values separated by comma from the environment.
+// Int64 retrieves the 64-bit integer values separated by comma from the environment.
 func Int64(key string, fallback ...int64) (value int64) {
 	if str, exists := Get(key); exists {
 		if v, e := strconv.ParseInt(str, 10, 64); e == nil {
